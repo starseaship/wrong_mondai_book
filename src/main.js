@@ -114,33 +114,12 @@ function appShell(content) {
 function renderHome() {
   return appShell(`
     <section class="panel hero">
-      <h1>JLPT / TOEIC 错题复习小本子</h1>
-      <p>首页不放压力数字，只保留最常用入口。手机可以添加到主屏幕，电脑可以当管理页面使用。</p>
-      <div class="pills">
-        <span class="pill">浅紫星星图标</span>
-        <span class="pill">PWA 已配置</span>
-        <span class="pill">生词浏览器发音</span>
-      </div>
+      <h1>错题复习本</h1>
       <div class="quick-grid">
         <article class="quick-card" data-go="add"><strong>新增错题</strong><span>录入题目、四个选项、答案、解析和生词。</span></article>
         <article class="quick-card" data-go="questions"><strong>查看错题本</strong><span>快速浏览题目，列表里只显示普通选项。</span></article>
         <article class="quick-card" data-go="vocab"><strong>打开生词本</strong><span>查词、发音、回到对应错题。</span></article>
         <article class="quick-card" data-go="filter"><strong>标签筛选</strong><span>JLPT / TOEIC → 分类 → 等级或 Part。</span></article>
-      </div>
-    </section>
-
-    <section class="two-col">
-      <div class="panel">
-        <div class="section-head"><div><h2>下一步建议</h2><p>正式上线前的最小版本</p></div></div>
-        <div class="card-soft">
-          <p>先部署到 Vercel，用 Demo 数据确认手机显示和 PWA 安装效果。之后在 Vercel 里补 Supabase 环境变量，页面就会读取你的数据库。</p>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="section-head"><div><h2>PWA 使用</h2><p>iPhone Safari</p></div></div>
-        <div class="card-soft">
-          <p>打开部署网址 → 分享按钮 → 添加到主屏幕。桌面图标会使用浅紫星星版。</p>
-        </div>
       </div>
     </section>
   `);
