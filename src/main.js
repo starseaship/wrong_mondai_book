@@ -150,11 +150,18 @@ function questionCard(q, compact = true) {
   `;
 }
 
+function questionMatchesKeyword(q, keyword) {
+  return [q.question_text, q.ai_explanation, q.my_answer_text, q.source_name, q.chapter, ...(q.error_reason_tags || [])]
+    .join(' ')
+    .toLowerCase()
+    .includes(keyword);
+}
+
 function renderQuestions() {
   const keyword = state.search.trim().toLowerCase();
   let qs = state.questions;
   if (keyword) {
-    qs = qs.filter(q => [q.question_text, q.ai_explanation, q.my_answer_text, q.source_name, q.chapter, ...(q.error_reason_tags || [])].join(' ').toLowerCase().includes(keyword));
+    qs = qs.filter(q => questionMatchesKeyword(q, keyword));
   }
   return appShell(`
     <section class="panel hero">
@@ -173,13 +180,16 @@ function renderQuestions() {
 
 function renderFilter() {
   const cfg = filterConfig[state.filters.exam];
-  const filtered = state.questions.filter(q => {
+  const keyword = state.search.trim().toLowerCase();
+  const baseFiltered = state.questions.filter(q => {
     const examOk = q.exam_category === state.filters.exam;
     const skillOk = !state.filters.skill || [q.question_type, q.section, ...(q.error_reason_tags || [])].join(' ').includes(state.filters.skill.split(' ')[0]);
     const levelOk = !state.filters.level || q.level === state.filters.level || q.section === state.filters.level;
     const statusOk = state.filters.status === 'all' || q.status === state.filters.status;
     return examOk && (skillOk || q.question_type === state.filters.skill) && levelOk && statusOk;
   });
+  const fallbackFiltered = baseFiltered.length ? baseFiltered : state.questions.filter(q => q.exam_category === state.filters.exam);
+  const finalFiltered = keyword ? fallbackFiltered.filter(q => questionMatchesKeyword(q, keyword)) : fallbackFiltered;
 
   return appShell(`
     <section class="panel hero">
@@ -205,10 +215,10 @@ function renderFilter() {
       </aside>
       <section class="panel">
         <div class="results-topbar">
-          <div class="section-head" style="margin:0"><div><h2>筛选结果</h2><p>列表里只预览四个普通选项，不显示对错</p></div></div>
+          <div class="section-head" style="margin:0"><div><h2>筛选结果</h2><p class="filter-result-copy">列表里只预览四个普通选项，不显示对错。当前显示 ${finalFiltered.length} 条结果。</p></div></div>
           <div class="search-box"><span>🔎</span><input id="filterSearch" value="${escapeHtml(state.search)}" placeholder="在当前结果里再搜词汇"></div>
         </div>
-        <div class="result-list">${(filtered.length ? filtered : state.questions.filter(q => q.exam_category === state.filters.exam)).map(q => questionCard(q)).join('')}</div>
+        <div class="result-list">${finalFiltered.map(q => questionCard(q)).join('') || '<div class="empty-note">没有找到符合条件的错题。</div>'}</div>
       </section>
     </section>
   `);
