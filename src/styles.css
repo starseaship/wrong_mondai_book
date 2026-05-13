@@ -149,6 +149,7 @@ a { color: inherit; }
 .section-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
 .section-head h2, .section-head h3 { margin: 0; font-size: 18px; }
 .section-head p, .subline { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.filter-result-copy { line-height: 1.45; }
 
 .step-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .step-badge {
