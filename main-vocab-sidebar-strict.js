@@ -1,11 +1,5 @@
 import './main-vocab-sidebar.js';
-
-const statusLabels = {
-  unmastered: '未掌握',
-  uncertain: '模糊',
-  mastered: '已掌握',
-  all: ''
-};
+import { applyStrictDomQuestionFilters, cardTags } from './questionFilters.js';
 
 const listState = {
   exam: 'all',
@@ -15,10 +9,6 @@ const listState = {
 function activeValue(selector, key) {
   const el = document.querySelector(`${selector}.active`);
   return el?.dataset?.[key] || '';
-}
-
-function cardTags(card) {
-  return Array.from(card.querySelectorAll('.meta-tags .tag')).map(tag => tag.textContent.trim()).filter(Boolean);
 }
 
 function difficultyScore(tags) {
@@ -85,15 +75,17 @@ function applyQuestionListTools() {
 
   sorted.forEach(card => resultList.appendChild(card));
 
-  let count = 0;
-  sorted.forEach(card => {
-    const tags = cardTags(card);
-    const ok = listState.exam === 'all' || tags.includes(listState.exam);
-    card.style.display = ok ? '' : 'none';
-    if (ok) count += 1;
+  const count = applyStrictDomQuestionFilters({
+    resultList,
+    exam: listState.exam,
+    level: '',
+    status: '',
+    emptyClassName: 'question-list-empty',
+    emptyText: '没有找到符合当前考试筛选的错题。',
+    countText: value => `${value} 条显示结果`
   });
 
-  const heading = Array.from(document.querySelectorAll('.section-head h2')).find(el => el.textContent.includes('全部错题'));
+  const heading = Array.from(document.querySelectorAll('.section-head h2')).find(el => el.textContent.includes('全部错题') || el.textContent.includes('JLPT 错题') || el.textContent.includes('TOEIC 错题'));
   if (heading) heading.textContent = listState.exam === 'all' ? '全部错题' : `${listState.exam} 错题`;
   const countLine = heading?.parentElement?.querySelector('p');
   if (countLine) countLine.textContent = `${count} 条显示结果`;
@@ -110,33 +102,13 @@ function applyFilterFix() {
   const isFilterPage = document.querySelector('[data-filter-level]') && document.querySelector('.filter-result-copy');
   if (!resultList || !isFilterPage) return;
 
-  const exam = activeValue('[data-filter-exam]', 'filterExam');
-  const level = activeValue('[data-filter-level]', 'filterLevel');
-  const status = activeValue('[data-filter-status]', 'filterStatus');
-  const statusLabel = statusLabels[status] || '';
-  let count = 0;
-
-  resultList.querySelectorAll('.result-card').forEach(card => {
-    const tags = cardTags(card);
-    const ok = (!exam || tags.includes(exam)) && (!level || tags.includes(level)) && (!statusLabel || tags.includes(statusLabel));
-    card.style.display = ok ? '' : 'none';
-    if (ok) count += 1;
+  applyStrictDomQuestionFilters({
+    resultList,
+    exam: activeValue('[data-filter-exam]', 'filterExam'),
+    level: activeValue('[data-filter-level]', 'filterLevel'),
+    status: activeValue('[data-filter-status]', 'filterStatus'),
+    countElement: document.querySelector('.filter-result-copy')
   });
-
-  let empty = resultList.querySelector('.strict-filter-empty');
-  if (count === 0) {
-    if (!empty) {
-      empty = document.createElement('div');
-      empty.className = 'empty-note strict-filter-empty';
-      resultList.appendChild(empty);
-    }
-    empty.textContent = '没有找到符合当前等级 / Part 的错题。';
-  } else if (empty) {
-    empty.remove();
-  }
-
-  const copy = document.querySelector('.filter-result-copy');
-  if (copy) copy.textContent = `列表里只预览四个普通选项，不显示对错。当前显示 ${count} 条结果。`;
 }
 
 function installToolStyles() {
