@@ -23,6 +23,8 @@ const initialFilters = {
   status: 'all'
 };
 
+const SEARCH_RENDER_DELAY_MS = 160;
+
 const state = {
   page: 'home',
   loading: true,
@@ -44,6 +46,7 @@ const state = {
 
 let appRoot = null;
 let toastTimer = null;
+let searchRenderTimer = null;
 
 export function startApp(root) {
   appRoot = root;
@@ -67,6 +70,14 @@ function render() {
 
   const renderer = pageRenderers[state.page] || HomePage;
   appRoot.innerHTML = AppShell(state, renderer(state));
+}
+
+function scheduleSearchRender() {
+  clearTimeout(searchRenderTimer);
+  searchRenderTimer = setTimeout(() => {
+    searchRenderTimer = null;
+    render();
+  }, SEARCH_RENDER_DELAY_MS);
 }
 
 async function loadInitialData() {
@@ -243,13 +254,13 @@ async function handleClick(event) {
 function handleInput(event) {
   if (event.target.matches('#questionSearch, #filterSearch')) {
     state.search = event.target.value;
-    render();
+    scheduleSearchRender();
   }
 
   if (event.target.matches('#vocabSearch')) {
     state.vocabFilters.query = event.target.value;
     state.vocabPage = 1;
-    render();
+    scheduleSearchRender();
   }
 }
 
