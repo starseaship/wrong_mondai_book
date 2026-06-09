@@ -132,6 +132,11 @@ async function handleClick(event) {
     return;
   }
 
+  if (target.matches('#homeWordSearchBtn')) {
+    runHomeWordSearch();
+    return;
+  }
+
   if (target.matches('[data-go]')) {
     go(target.dataset.go);
     return;
@@ -251,8 +256,12 @@ function handleInput(event) {
 function handleKeyDown(event) {
   if (event.key !== 'Enter') return;
   if (!event.target.matches('#homeWordSearch')) return;
+  runHomeWordSearch();
+}
 
-  const keyword = event.target.value.trim();
+function runHomeWordSearch() {
+  const input = document.getElementById('homeWordSearch');
+  const keyword = input?.value.trim();
   if (!keyword) return;
 
   state.search = keyword;
