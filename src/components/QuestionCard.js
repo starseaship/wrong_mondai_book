@@ -1,5 +1,6 @@
 import { escapeAttr, escapeHtml, nl2br } from '../utils/html.js';
 import { getStatusColor, getStatusLabel } from '../utils/filters.js';
+import { highlightText } from '../utils/highlight.js';
 
 export function StatusTag(status) {
   const color = getStatusColor(status);
@@ -22,7 +23,7 @@ export function QuestionCard(question) {
         <span class="tag teal">${escapeHtml(question.question_type || '')}</span>
         ${StatusTag(question.status)}
       </div>
-      <h3>${escapeHtml(question.question_text)}</h3>
+      <h3>${highlightText(question.question_text, question.target_terms)}</h3>
       <div class="compact-options">${options}</div>
       <div class="subline">错因：${escapeHtml((question.error_reason_tags || []).join(' / ') || '未填写')} · 上次复习：${escapeHtml(question.last_reviewed_at || '未复习')}</div>
       <div class="actions">
@@ -65,7 +66,7 @@ export function QuestionDetail(question, lastListPage = 'questions') {
         <span class="tag teal">${escapeHtml(question.question_type || question.section || '')}</span>
         ${StatusTag(question.status)}
       </div>
-      <h1>${escapeHtml(question.question_text)}</h1>
+      <h1>${highlightText(question.question_text, question.target_terms)}</h1>
       <p>详情页显示正确答案、我的答案、解析和关联生词。</p>
       <div class="actions">
         <button class="btn secondary" type="button" data-go="${escapeAttr(lastListPage)}">返回列表</button>
