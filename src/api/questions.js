@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js';
+import { getSupabase } from './supabaseClient.js';
 
 async function enrichQuestionsWithTargetTerms(questions = []) {
   if (!Array.isArray(questions) || !questions.length) return [];
@@ -6,6 +6,7 @@ async function enrichQuestionsWithTargetTerms(questions = []) {
   const ids = questions.map(question => question.id).filter(Boolean);
   if (!ids.length) return questions;
 
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('wrong_questions')
     .select('id,target_terms,context_text')
@@ -31,6 +32,7 @@ async function enrichQuestionsWithTargetTerms(questions = []) {
 }
 
 export async function listQuestionsByFilters(filters = {}) {
+  const supabase = getSupabase();
   const { data, error } = await supabase.rpc('list_questions_by_filters_rpc', {
     p_exam_category: filters.examCategory ?? null,
     p_skill_group: filters.skillGroup ?? null,
@@ -46,6 +48,7 @@ export async function listQuestionsByFilters(filters = {}) {
 }
 
 export async function searchRelatedQuestions(keyword, filters = {}) {
+  const supabase = getSupabase();
   const { data, error } = await supabase.rpc('search_related_questions_rpc', {
     p_keyword: keyword,
     p_exam_category: filters.examCategory ?? null,
@@ -61,6 +64,7 @@ export async function searchRelatedQuestions(keyword, filters = {}) {
 }
 
 export async function addQuestion(payload) {
+  const supabase = getSupabase();
   const { data, error } = await supabase.functions.invoke('study-api', {
     body: { action: 'add_question', payload }
   });
@@ -71,6 +75,7 @@ export async function addQuestion(payload) {
 }
 
 export async function updateQuestionStatus(questionId, status) {
+  const supabase = getSupabase();
   const { data, error } = await supabase.functions.invoke('study-api', {
     body: { action: 'update_question_status', payload: { question_id: questionId, status } }
   });
@@ -81,6 +86,7 @@ export async function updateQuestionStatus(questionId, status) {
 }
 
 export async function markQuestionReviewed(questionId, result = 'reviewed') {
+  const supabase = getSupabase();
   const { data, error } = await supabase.functions.invoke('study-api', {
     body: { action: 'mark_question_reviewed', payload: { question_id: questionId, result } }
   });
