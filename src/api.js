@@ -11,6 +11,31 @@ export const hasSupabaseConfig = Boolean(
 
 export const supabase = hasSupabaseConfig ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+async function enrichQuestionsWithTargetTerms(questions = []) {
+  if (!supabase || !Array.isArray(questions) || !questions.length) return questions;
+  if (questions.every(question => Array.isArray(question.target_terms))) return questions;
+
+  const ids = questions.map(question => question.id).filter(Boolean);
+  if (!ids.length) return questions;
+
+  const { data, error } = await supabase
+    .from('wrong_questions')
+    .select('id,target_terms,context_text')
+    .in('id', ids);
+
+  if (error || !Array.isArray(data)) {
+    if (error) console.warn('Failed to enrich target_terms', error);
+    return questions;
+  }
+
+  const extrasById = new Map(data.map(row => [row.id, row]));
+  return questions.map(question => ({
+    ...question,
+    target_terms: question.target_terms ?? extrasById.get(question.id)?.target_terms ?? [],
+    context_text: question.context_text ?? extrasById.get(question.id)?.context_text ?? ''
+  }));
+}
+
 export async function listQuestionsByFilters(filters = {}) {
   if (!supabase) return null;
   const { data, error } = await supabase.rpc('list_questions_by_filters_rpc', {
@@ -23,7 +48,7 @@ export async function listQuestionsByFilters(filters = {}) {
     p_limit: filters.limit ?? 50
   });
   if (error) throw error;
-  return Array.isArray(data) ? data : [];
+  return enrichQuestionsWithTargetTerms(Array.isArray(data) ? data : []);
 }
 
 export async function searchRelatedQuestions(keyword, filters = {}) {
@@ -38,7 +63,7 @@ export async function searchRelatedQuestions(keyword, filters = {}) {
     p_limit: filters.limit ?? 50
   });
   if (error) throw error;
-  return Array.isArray(data) ? data : [];
+  return enrichQuestionsWithTargetTerms(Array.isArray(data) ? data : []);
 }
 
 export async function listVocabulary() {
