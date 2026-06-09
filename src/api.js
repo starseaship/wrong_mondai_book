@@ -13,7 +13,6 @@ export const supabase = hasSupabaseConfig ? createClient(SUPABASE_URL, SUPABASE_
 
 async function enrichQuestionsWithTargetTerms(questions = []) {
   if (!supabase || !Array.isArray(questions) || !questions.length) return questions;
-  if (questions.every(question => Array.isArray(question.target_terms))) return questions;
 
   const ids = questions.map(question => question.id).filter(Boolean);
   if (!ids.length) return questions;
@@ -29,11 +28,16 @@ async function enrichQuestionsWithTargetTerms(questions = []) {
   }
 
   const extrasById = new Map(data.map(row => [row.id, row]));
-  return questions.map(question => ({
-    ...question,
-    target_terms: question.target_terms ?? extrasById.get(question.id)?.target_terms ?? [],
-    context_text: question.context_text ?? extrasById.get(question.id)?.context_text ?? ''
-  }));
+  return questions.map(question => {
+    const extra = extrasById.get(question.id);
+    const rpcTerms = Array.isArray(question.target_terms) ? question.target_terms : [];
+    const tableTerms = Array.isArray(extra?.target_terms) ? extra.target_terms : [];
+    return {
+      ...question,
+      target_terms: tableTerms.length ? tableTerms : rpcTerms,
+      context_text: question.context_text || extra?.context_text || ''
+    };
+  });
 }
 
 export async function listQuestionsByFilters(filters = {}) {
