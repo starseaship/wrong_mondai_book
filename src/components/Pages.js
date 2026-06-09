@@ -1,5 +1,6 @@
 import { escapeAttr, escapeHtml } from '../utils/html.js';
 import { filterConfig, getExamConfig, getStatusLabel, matchesSearch } from '../utils/filters.js';
+import { highlightText } from '../utils/highlight.js';
 import { QuestionCard, QuestionDetail, StatusTag } from './QuestionCard.js';
 import { VocabCard, VocabDetail } from './VocabCard.js';
 
@@ -213,7 +214,7 @@ export function ReviewPage(state) {
     <section class="panel hero"><h1>闪卡复习</h1><p>选项随机排列，点击详情再看答案。</p></section>
     <section class="panel">
       <div class="meta-tags"><span class="tag">${escapeHtml(question.exam_category)}</span><span class="tag lavender">${escapeHtml(question.level || '')}</span>${StatusTag(question.status)}</div>
-      <h2>${escapeHtml(question.question_text)}</h2>
+      <h2>${highlightText(question.question_text, question.target_terms)}</h2>
       <div class="full-options">${shuffled.map((option, index) => `<div class="option">${String.fromCharCode(65 + index)}. ${escapeHtml(option.option_text || '')}</div>`).join('')}</div>
       <div class="actions"><button class="btn secondary" type="button" data-detail="${escapeAttr(question.id)}">看答案和解析</button><button class="btn" type="button" data-go="review">再随机一次</button></div>
     </section>
