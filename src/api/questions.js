@@ -1,34 +1,5 @@
 import { getSupabase } from './supabaseClient.js';
 
-async function enrichQuestionsWithTargetTerms(questions = []) {
-  if (!Array.isArray(questions) || !questions.length) return [];
-
-  const ids = questions.map(question => question.id).filter(Boolean);
-  if (!ids.length) return questions;
-
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('wrong_questions')
-    .select('id,target_terms,context_text')
-    .in('id', ids);
-
-  if (error || !Array.isArray(data)) {
-    if (error) console.warn('Failed to enrich target_terms', error);
-    return questions;
-  }
-
-  const extrasById = new Map(data.map(row => [row.id, row]));
-  return questions.map(question => {
-    const extra = extrasById.get(question.id) || {};
-
-    return {
-      ...question,
-      target_terms: extra.target_terms ?? question.target_terms ?? [],
-      context_text: question.context_text || extra.context_text || ''
-    };
-  });
-}
-
 export async function listQuestionsByFilters(filters = {}) {
   const supabase = getSupabase();
   const { data, error } = await supabase.rpc('list_questions_by_filters_rpc', {
@@ -42,7 +13,7 @@ export async function listQuestionsByFilters(filters = {}) {
   });
 
   if (error) throw error;
-  return enrichQuestionsWithTargetTerms(Array.isArray(data) ? data : []);
+  return Array.isArray(data) ? data : [];
 }
 
 export async function searchRelatedQuestions(keyword, filters = {}) {
@@ -58,7 +29,7 @@ export async function searchRelatedQuestions(keyword, filters = {}) {
   });
 
   if (error) throw error;
-  return enrichQuestionsWithTargetTerms(Array.isArray(data) ? data : []);
+  return Array.isArray(data) ? data : [];
 }
 
 export async function addQuestion(payload) {
