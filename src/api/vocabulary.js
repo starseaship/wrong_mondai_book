@@ -31,6 +31,10 @@ export async function listVocabulary({ limit = 120 } = {}) {
     if (data?.ok === false) throw new Error(data.error || 'list_vocabulary failed');
     return mergeVocabulary(data?.data ?? data ?? [], readingClassVocabulary);
   } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('listVocabulary fell back to local reading-class vocabulary:', error);
+    }
+
     if (readingClassVocabulary.length) return readingClassVocabulary;
     throw error;
   }
