@@ -111,7 +111,6 @@ async function loadInitialData() {
 async function refreshQuestionsFromFilters() {
   const data = await listQuestionsByFilters({
     examCategory: state.filters.exam,
-    skillGroup: state.filters.skill,
     level: state.filters.level,
     status: state.filters.status,
     limit: 120
@@ -294,12 +293,19 @@ function splitTags(value) {
     .filter(Boolean);
 }
 
-function buildQuestionPayload(form) {
+function buildQuestionPayload(form, baseQuestion = {}) {
   const labels = ['A', 'B', 'C', 'D'];
   const correct = form.get('correct_label');
   const mine = form.get('my_label');
+  const options = labels.map(label => ({
+    label,
+    option_text: String(form.get(`option_${label}`) || '').trim(),
+    is_correct: label === correct,
+    is_my_answer: label === mine
+  })).filter(option => option.option_text);
 
   return {
+    ...baseQuestion,
     exam_category: String(form.get('exam_category') || ''),
     level: String(form.get('level') || ''),
     section: String(form.get('section') || ''),
@@ -307,16 +313,20 @@ function buildQuestionPayload(form) {
     source_name: String(form.get('source_name') || ''),
     question_text: String(form.get('question_text') || ''),
     ai_explanation: String(form.get('ai_explanation') || ''),
-    my_answer_text: mine ? String(form.get(`option_${mine}`) || '') : '',
+    my_answer_text: mine ? String(form.get(`option_${mine}`) || '').trim() : '',
     error_reason_tags: splitTags(form.get('error_reason_tags')),
-    options: labels.map(label => ({
-      label,
-      option_text: String(form.get(`option_${label}`) || ''),
-      is_correct: label === correct,
-      is_my_answer: label === mine
-    })).filter(option => option.option_text),
-    vocabulary_items: []
+    options,
+    vocabulary_items: Array.isArray(baseQuestion.vocabulary_items) ? baseQuestion.vocabulary_items : []
   };
+}
+
+function validateQuestionPayload(payload) {
+  if (!String(payload.exam_category || '').trim()) return '考试类别不能为空';
+  if (!String(payload.section || '').trim()) return '能力分类不能为空';
+  if (!String(payload.question_text || '').trim()) return '题目不能为空';
+  if (!Array.isArray(payload.options) || payload.options.length < 2) return '至少填写 2 个选项';
+  if (!payload.options.some(option => option.is_correct)) return '正确答案对应的选项不能为空';
+  return null;
 }
 
 async function handleSubmit(event) {
@@ -324,9 +334,16 @@ async function handleSubmit(event) {
   event.preventDefault();
 
   const form = new FormData(event.target);
-  const payload = buildQuestionPayload(form);
   const isEdit = event.target.matches('#editForm');
   const questionId = String(form.get('id') || state.selectedQuestionId || '');
+  const baseQuestion = isEdit ? state.questions.find(question => question.id === questionId) || {} : {};
+  const payload = buildQuestionPayload(form, baseQuestion);
+  const validationError = validateQuestionPayload(payload);
+
+  if (validationError) {
+    showToast(validationError);
+    return;
+  }
 
   try {
     const saved = isEdit ? await updateQuestion(questionId, payload) : await addQuestion(payload);
