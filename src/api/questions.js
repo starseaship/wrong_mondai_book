@@ -42,7 +42,7 @@ async function throwFunctionError(error) {
       if (body?.error) throw new Error(body.error);
       if (body?.message) throw new Error(body.message);
     } catch (innerError) {
-      if (innerError instanceof Error && (innerError.message?.startsWith('{') || innerError.message?.includes(' is required') || innerError.message?.includes(' is invalid'))) {
+      if (innerError instanceof Error && innerError.message && innerError.name !== 'SyntaxError') {
         throw innerError;
       }
     }
