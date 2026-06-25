@@ -1,7 +1,7 @@
 import { hasSupabaseConfig } from './api/supabaseClient.js';
-import { addQuestion, listQuestionsByFilters, listVocabulary, markQuestionReviewed, updateQuestionStatus } from './api/index.js';
+import { addQuestion, listQuestionsByFilters, listVocabulary, markQuestionReviewed, updateQuestion } from './api/index.js';
 import { AppShell } from './components/AppShell.js';
-import { AddPage, DetailPage, ErrorPage, FilterPage, HomePage, LoadingPage, QuestionsPage, ReviewPage, VocabPage } from './components/Pages.js';
+import { AddPage, DetailPage, EditPage, ErrorPage, FilterPage, HomePage, LoadingPage, QuestionsPage, ReviewPage, VocabPage } from './components/Pages.js';
 import { getExamConfig } from './utils/filters.js';
 import { normalizeQuestion, normalizeVocabulary } from './utils/normalizers.js';
 import { speakWord } from './speech.js';
@@ -11,6 +11,7 @@ const pageRenderers = {
   questions: QuestionsPage,
   filter: FilterPage,
   detail: DetailPage,
+  edit: EditPage,
   vocab: VocabPage,
   add: AddPage,
   review: ReviewPage
@@ -135,7 +136,7 @@ function bindGlobalEvents() {
 }
 
 async function handleClick(event) {
-  const target = event.target.closest('button, article, [data-go], [data-detail], [data-select-vocab]');
+  const target = event.target.closest('button, article, [data-go], [data-detail], [data-edit], [data-select-vocab]');
   if (!target) return;
 
   if (target.matches('[data-reload]')) {
@@ -154,7 +155,12 @@ async function handleClick(event) {
   }
 
   if (target.matches('[data-detail]')) {
-    go('detail', { selectedQuestionId: target.dataset.detail, lastListPage: state.page });
+    go('detail', { selectedQuestionId: target.dataset.detail, lastListPage: state.lastListPage || 'questions' });
+    return;
+  }
+
+  if (target.matches('[data-edit]')) {
+    go('edit', { selectedQuestionId: target.dataset.edit, lastListPage: state.page === 'detail' ? state.lastListPage : state.page });
     return;
   }
 
@@ -279,25 +285,30 @@ function runHomeWordSearch() {
   go('questions');
 }
 
-async function handleSubmit(event) {
-  if (!event.target.matches('#addForm')) return;
-  event.preventDefault();
+function splitTags(value) {
+  return String(value || '')
+    .replaceAll('，', ',')
+    .replaceAll('、', ',')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
 
-  const form = new FormData(event.target);
+function buildQuestionPayload(form) {
   const labels = ['A', 'B', 'C', 'D'];
   const correct = form.get('correct_label');
   const mine = form.get('my_label');
 
-  const payload = {
+  return {
     exam_category: String(form.get('exam_category') || ''),
     level: String(form.get('level') || ''),
-    section: String(form.get('level') || ''),
+    section: String(form.get('section') || ''),
     question_type: String(form.get('question_type') || ''),
     source_name: String(form.get('source_name') || ''),
     question_text: String(form.get('question_text') || ''),
     ai_explanation: String(form.get('ai_explanation') || ''),
     my_answer_text: mine ? String(form.get(`option_${mine}`) || '') : '',
-    error_reason_tags: String(form.get('error_reason_tags') || '').split(',').map(item => item.trim()).filter(Boolean),
+    error_reason_tags: splitTags(form.get('error_reason_tags')),
     options: labels.map(label => ({
       label,
       option_text: String(form.get(`option_${label}`) || ''),
@@ -306,15 +317,25 @@ async function handleSubmit(event) {
     })).filter(option => option.option_text),
     vocabulary_items: []
   };
+}
+
+async function handleSubmit(event) {
+  if (!event.target.matches('#addForm, #editForm')) return;
+  event.preventDefault();
+
+  const form = new FormData(event.target);
+  const payload = buildQuestionPayload(form);
+  const isEdit = event.target.matches('#editForm');
+  const questionId = String(form.get('id') || state.selectedQuestionId || '');
 
   try {
-    const saved = await addQuestion(payload);
-    await refreshQuestionsFromFilters();
-    const savedId = saved?.id || saved?.question_id || state.questions[0]?.id || null;
-    showToast('错题已保存');
+    const saved = isEdit ? await updateQuestion(questionId, payload) : await addQuestion(payload);
+    const savedId = saved?.id || saved?.question?.id || saved?.question_id || questionId || null;
+    await loadInitialData();
+    showToast(isEdit ? '错题已更新' : '错题已保存');
     go(savedId ? 'detail' : 'questions', savedId ? { selectedQuestionId: savedId } : {});
   } catch (error) {
-    showToast(`保存失败：${error.message}`);
+    showToast(`${isEdit ? '更新' : '保存'}失败：${error.message}`);
   }
 }
 
@@ -339,14 +360,17 @@ function handleHomeAction(action) {
 
 async function handleStatusUpdate(questionId, status) {
   const question = state.questions.find(item => item.id === questionId);
+  const previousStatus = question?.status;
   if (question) question.status = status;
   render();
 
   try {
-    await updateQuestionStatus(questionId, status);
-    await markQuestionReviewed(questionId, status === 'mastered' ? 'correct' : status === 'uncertain' ? 'uncertain' : 'wrong');
+    const result = status === 'mastered' ? 'correct' : status === 'uncertain' ? 'uncertain' : 'wrong';
+    await markQuestionReviewed(questionId, result, status);
     showToast('复习状态已保存');
   } catch (error) {
+    if (question && previousStatus) question.status = previousStatus;
+    render();
     showToast(`保存失败：${error.message}`);
   }
 }
