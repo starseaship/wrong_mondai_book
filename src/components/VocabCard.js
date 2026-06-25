@@ -3,7 +3,7 @@ import { StatusTag } from './QuestionCard.js';
 
 export function VocabCard(item) {
   return `
-    <article class="vocab-card ${item.isActive ? 'active' : ''}">
+    <article class="vocab-card ${item.isActive ? 'active' : ''}" data-select-vocab="${escapeAttr(item.id)}">
       <div class="meta-tags">
         <span class="tag">${escapeHtml(item.exam_category)}</span>
         ${StatusTag(item.status)}
