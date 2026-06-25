@@ -8,7 +8,7 @@ const titleMap = {
   edit: ['编辑错题', '修改并保存'],
   vocab: ['生词本', '按词复习'],
   add: ['新增错题', '写入 Supabase'],
-  review: ['闪卡复习', '随机选项练习']
+  review: ['刷题练习', '选择答案并记录复习']
 };
 
 export function AppShell(state, content) {
@@ -34,6 +34,7 @@ export function AppShell(state, content) {
     <nav class="bottom-nav" aria-label="主要导航">
       <button type="button" class="${state.page === 'home' ? 'active' : ''}" data-go="home">首页</button>
       <button type="button" class="${state.page === 'questions' || state.page === 'filter' || state.page === 'detail' || state.page === 'edit' ? 'active' : ''}" data-go="questions">错题</button>
+      <button type="button" class="${state.page === 'review' ? 'active' : ''}" data-go="review">刷题</button>
       <button type="button" class="${state.page === 'vocab' ? 'active' : ''}" data-go="vocab">生词</button>
       <button type="button" class="${state.page === 'add' ? 'active' : ''}" data-go="add">新增</button>
     </nav>
